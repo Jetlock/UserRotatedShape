@@ -1,0 +1,298 @@
+<html>
+<head>
+<title>CSCI 440 - HW4</title>
+
+<!-- ---- Create the two Shaders ---- -->
+<script id="vertex-shader" type="x-shader/x-vertex">
+   attribute vec4 vPosition;
+   uniform mat4 modelMatrix;
+   void main()
+      {
+         gl_Position = modelMatrix * vPosition;
+      }
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+
+void main()
+{
+    gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
+}
+</script>
+
+
+<!-- ---- Include Angel's Libraries ---- -->
+<script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="initShaders.js"></script>
+<script type="text/javascript" src="MV.js"></script>
+
+<!-- Include Dallas's Matrix Library -->
+<script type="text/javascript" src="DW.js"></script>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - -
+- - - - - - - - - -  Primary Code  - - - - - - - -
+- - - - - - - - - - - - - - - - - - - - - - - - -->
+<script>
+
+var gl;                 	      // graphics library instance
+var program;                    // GPU instructions
+var modelMatrixLoc;             // location in GPU
+var degreesX = 0.0;
+var rate = 0.0;
+var limit = 90;
+var count = 90;
+var axis = 0;
+
+<!-------------------------------------------------->
+
+//Button Functions
+//X Axis Spin
+function spinX (direction)
+{
+	axis = 1;
+	count = 0;
+   if (direction > 0)
+	rate = 1;
+   else
+	rate = -1;
+}
+
+//Y Axis Spin
+function spinY (direction)
+{
+	axis = 2;
+	count = 0;
+   if (direction > 0)
+	rate = 1;
+   else
+	rate = -1;
+}
+
+//Z Axis Spin
+function spinZ (direction)
+{
+	axis = 3;
+	count = 0;
+   if (direction > 0)
+	rate = 1;
+   else
+	rate = -1;
+}
+
+function render()
+{
+    degreesX += rate;
+
+	//Determine axis to rotate on
+	if (axis == 1)
+		rotMat = [1,0,0];
+	else if (axis == 2)
+		rotMat = [0,1,0];
+	else
+		rotMat = [0,0,1];
+		
+    //replaced
+	var myMatrix = createMatID4();        // create a new matrix, equal to identity matrix
+	
+	//replaced
+    var rotMatA = rotateMat (degreesX, rotMat);   // create rotation matrix, X degree around X axis
+	
+	//replaced
+	var scaleMatB = scaleMat(0.25, 0.25, 0.25);     // scale to half size
+
+	//replaced
+	myMatrix = matMult (myMatrix, scaleMatB);        // multiply matrices
+	//replaced
+	myMatrix = matMult (myMatrix, rotMatA);
+	
+    // clear the old image
+    gl.clear ( gl.COLOR_BUFFER_BIT );
+
+    // pass new matrix numbers to GPU
+    gl.uniformMatrix4fv (modelMatrixLoc, false, flatten(myMatrix) );
+
+    // redraw
+    gl.drawArrays ( gl.TRIANGLES, 0, 60 );
+    requestAnimFrame ( render );
+    if(count == limit)
+    {
+      rate = 0;
+    }
+    else
+    {
+      count += 1;
+    }
+}
+
+<!-------------------------------------------------->
+
+window.onload = function init()
+{
+    // Create a drawing area in the browser window
+    var canvas = document.getElementById( "gl-canvas" );
+    gl = WebGLUtils.setupWebGL( canvas );
+    if ( !gl ) { alert( "WebGL isn't available" ); }
+	var x = (1 + Math.sqrt(5))/2;
+	var negx = -1*x
+    // Create an array with 3 points
+    var vertices = [
+		//Side 01
+		0,1,negx,
+		negx,0,1,
+		x,0,1,
+
+		//Side 02
+		0,1,negx,
+		negx,0,1,
+		1,negx,0,
+
+		//Side 03
+		0,1,negx,
+		1,negx,0,
+		0,1,x,
+
+		//Side 04
+		0,1,negx,
+		0,1,x
+		-1,negx,0,
+
+		//Side 05
+		0,1,x,
+		-1,negx,0,
+		x,0,-1,
+
+		//Side 06
+		0,1,x,
+		x,0,-1,
+		negx,0,-1,
+		negx,0,-1,
+
+		//Side 07
+		0,1,x,
+		x,0,-1,
+		-1,negx,0,
+
+		//Side 08
+		0,1,x,
+		1,negx,0,
+		negx,0,-1,
+
+		//Side 09
+		-1,x,0,
+		-1,negx,0,
+		x,0,-1,
+
+		//Side 10
+		-1,x,0,
+		-1,negx,0,
+		x,0,-1,
+
+		//Side 11
+		1,x,0,
+		1,negx,0,
+		negx,0,-1,
+
+		//Side 12
+		1,x,0,
+		1,negx,0,
+		negx,0,1,
+
+		//Side 13
+		0,-1,x,
+		negx,0,-1,
+		x,0,-1,
+
+		//Side 14
+		0,-1,x,
+		1,x,0,
+		0,-1,negx,
+
+		//Side 15
+		0,-1,x,
+		-1,negx,0,
+		0,-1,negx,
+
+		//Side 16
+		0,-1,x,
+		x,0,-1,
+		-1,x,0,
+
+		//Side 17
+		0,-1,x,
+		1,x,0,
+		negx,0,-1,
+
+		//Side 18
+		0,-1,negx,
+		negx,0,1,
+		1,x,0,
+
+		//Side 19
+		0,-1,negx,
+		x,0,1,
+		-1,x,0,
+
+		//Side 20
+		0,-1,negx,
+		negx,0,1,
+		x,0,1
+	];
+
+
+    //
+// Create buffer
+
+    // Create space on the GPU
+    var myBuffer = gl.createBuffer();
+    gl.bindBuffer ( gl.ARRAY_BUFFER, myBuffer);
+    // Send data points to the GPU
+    gl.bufferData ( gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+    //var indexBuffer = gl.createBuffer();
+    //gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    //gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+    // get ready to draw
+    gl.viewport( 0, 0, canvas.width, canvas.height );
+    gl.clearColor( 1.0, 1.0, 1.0, 1.0 );
+
+    // send GPU instructions
+    program = initShaders( gl, "vertex-shader", "fragment-shader" );
+    gl.useProgram( program );
+
+    // Associate our shader variables with our data buffer
+    var vPosition = gl.getAttribLocation( program, "vPosition" );
+    gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
+    gl.enableVertexAttribArray( vPosition );
+
+    // Associate CPU's model matrix with GPU's memory
+    modelMatrixLoc = gl.getUniformLocation ( program, "modelMatrix" );
+
+    // Hide surfaces behind other surfaces
+    gl.enable ( gl.DEPTH_TEST );
+
+    // DRAW IT !!!
+    render();
+
+};
+
+<!-------------------------------------------------->
+
+</script>
+</head>
+
+
+<body bgcolor=grey>
+<center>
+<h2 align=center>Rotation on Axis</h2>
+<canvas id="gl-canvas" width="500" height="500"> You must use an updated browser. </canvas>
+<P>
+<button onclick=spinX(-1)>X-Axis Clockwise</button>
+<button onclick=spinX(1)>X-Axis Counter Clockwise</button>
+<button onclick=spinY(-1)>Y-Axis Clockwise</button>
+<button onclick=spinY(1)>Y-Axis Counter Clockwise</button>
+<button onclick=spinZ(-1)>Z-Axis Clockwise</button>
+<button onclick=spinZ(1)>Z-Axis Counter Clockwise</button>
+</body>
+</html>
